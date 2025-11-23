@@ -20,6 +20,14 @@ void setup() {
 
 int targetPos = 500;
 
+double Kp = 0.4;
+double Ki = 0.00001;
+double Kd = 0.01;
+
+uint32_t previousTime = 0;
+int previousError = 0;
+double integral = 0.0;
+
 void loop() {
     // 1. Process serial input, alter balancing position if necessary
     if(Serial.available() > 0){
@@ -43,4 +51,6 @@ void loop() {
     previousError = error;
 
     double output = Kp * error + Ki * integral + Kd * derivative;
+
+    //Servo.writeMicroseconds();
 }
