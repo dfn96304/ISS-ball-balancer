@@ -47,6 +47,8 @@ void setup() {
     servo.writeMicroseconds(SERVO_MAX);
     #endif
 
+    Serial.println("setup");
+
     pid_init();
 }
 
