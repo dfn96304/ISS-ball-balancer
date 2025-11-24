@@ -68,6 +68,10 @@ void process_serial(){
         int readInt = Serial.parseInt();
         if(readInt >= POS_MIN && readInt <= POS_MAX){
             targetPos = readInt;
+            Serial.print("Target set: ");
+            Serial.println(readInt);
+        }else{
+            Serial.println("ERROR");
         }
     }
 }
