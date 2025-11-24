@@ -5,6 +5,9 @@
 #define SERVO_MID 1500
 #define SERVO_MAX 1800
 
+#define INTEGRAL_MIN -100000
+#define INTEGRAL_MAX 100000
+
 #define POS_MIN 0
 #define POS_MAX 1023
 
@@ -86,10 +89,13 @@ void PID(){
     // calculate dt
     uint32_t currentTime = micros();  // https://docs.arduino.cc/language-reference/en/functions/time/micros/
     double dt = (double)(currentTime - previousTime) / 1000000.0;
+    if(dt <= 0) dt = 0.000001;
     previousTime = currentTime;
 
     // https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller (pseudocode)
     integral = integral + error * dt;  // calculate integral
+    if(integral > INTEGRAL_MAX) integral = INTEGRAL_MAX;
+    if(integral < INTEGRAL_MIN) integral = INTEGRAL_MIN;
 
     double derivative = (error - previousError) / dt;  // calculate derivative
     previousError = error;
