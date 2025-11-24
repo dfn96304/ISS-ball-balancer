@@ -24,7 +24,7 @@ Servo servo;
 
 int targetPos = 500;
 
-double Kp = 0.0;
+double Kp = 0.1;
 double Ki = 0.0;
 double Kd = 0.0;
 
@@ -64,6 +64,7 @@ void loop() {
 
 void process_serial(){
     if(Serial.available() > 0){
+        // https://docs.arduino.cc/language-reference/en/functions/communication/serial/parseInt/
         int readInt = Serial.parseInt();
         if(readInt >= POS_MIN && readInt <= POS_MAX){
             targetPos = readInt;
@@ -89,7 +90,10 @@ void PID(){
 
     double output = Kp * error + Ki * integral + Kd * derivative;
 
-    double servoOutput = SERVO_MID + output; 
+    int servoOutput = (int)((double)(SERVO_MID) + output);
 
-    servo.writeMicroseconds((int)servoOutput);
+    if(servoOutput < SERVO_MIN) servoOutput = SERVO_MIN;
+    if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
+
+    servo.writeMicroseconds(servoOutput);
 }
