@@ -12,10 +12,12 @@ void process_serial();
 // Same rules for dt and regular timings as Project 2
 void PID(); 
 
+Servo servo;
+
 void setup() {
     Serial.begin(9600);
 
-    Servo.attach(MOTOR_PIN);
+    servo.attach(MOTOR_PIN);
 }
 
 int targetPos = 500;
@@ -37,7 +39,7 @@ void loop() {
     // 2. At regular intervals, update PID
     int sensorPos = analogRead(SENSOR_PIN);
 
-    int error = target - sensorPos; // calculate error/proportional
+    int error = targetPos - sensorPos; // calculate error/proportional
 
     // calculate dt
     uint32_t currentTime = micros();  // https://docs.arduino.cc/language-reference/en/functions/time/micros/
