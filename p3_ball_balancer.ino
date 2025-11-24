@@ -1,6 +1,13 @@
 #define MOTOR_PIN 9
 #define SENSOR_PIN A0
 
+#define SERVO_MIN 1200
+#define SERVO_MID 1500
+#define SERVO_MAX 1800
+
+#define POS_MIN 0
+#define POS_MAX 1023
+
 // https://docs.arduino.cc/learn/electronics/servo-motors/
 #include <Servo.h>
 
@@ -11,32 +18,60 @@ void process_serial();
 // Process PID control.
 // Same rules for dt and regular timings as Project 2
 void PID(); 
+void pid_init();
 
 Servo servo;
 
-void setup() {
-    Serial.begin(9600);
-
-    servo.attach(MOTOR_PIN);
-}
-
 int targetPos = 500;
 
-double Kp = 0.4;
-double Ki = 0.00001;
-double Kd = 0.01;
+double Kp = 0.0;
+double Ki = 0.0;
+double Kd = 0.0;
 
 uint32_t previousTime = 0;
 int previousError = 0;
 double integral = 0.0;
 
+void setup() {
+    Serial.begin(9600);
+
+    servo.attach(MOTOR_PIN);
+
+    #define TEST_SERVO
+
+    #ifdef TEST_SERVO
+    servo.writeMicroseconds(SERVO_MID);
+    delay(3000);
+    servo.writeMicroseconds(SERVO_MIN);
+    delay(3000);
+    servo.writeMicroseconds(SERVO_MAX);
+    #endif
+
+    pid_init();
+}
+
+void pid_init() {
+    previousTime = micros();
+}
+
 void loop() {
     // 1. Process serial input, alter balancing position if necessary
-    if(Serial.available() > 0){
-      int readInt = Serial.parseInt();
-    }
+    process_serial();
 
     // 2. At regular intervals, update PID
+    PID();
+}
+
+void process_serial(){
+    if(Serial.available() > 0){
+        int readInt = Serial.parseInt();
+        if(readInt >= POS_MIN && readInt <= POS_MAX){
+            targetPos = readInt;
+        }
+    }
+}
+
+void PID(){
     int sensorPos = analogRead(SENSOR_PIN);
 
     int error = targetPos - sensorPos; // calculate error/proportional
@@ -54,5 +89,7 @@ void loop() {
 
     double output = Kp * error + Ki * integral + Kd * derivative;
 
-    //Servo.writeMicroseconds();
+    double servoOutput = SERVO_MID + output; 
+
+    servo.writeMicroseconds((int)servoOutput);
 }
