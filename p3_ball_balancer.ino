@@ -27,9 +27,9 @@ Servo servo;
 
 int targetPos = 300;
 
-double Kp = 0.1;
+double Kp = 0.15;
 double Ki = 0.0;
-double Kd = 0.0;
+double Kd = 0.001;
 
 uint32_t previousTime = 0;
 int previousError = 0;
@@ -57,7 +57,7 @@ void setup() {
     Serial.println("center");
 
     servo.write(SERVO_MID);
-    delay(5000);
+    delay(3000);
 
     Serial.println("setup");
 
@@ -114,6 +114,7 @@ void PID(){
     uint32_t currentTime = micros();  // https://docs.arduino.cc/language-reference/en/functions/time/micros/
     double dt = (double)(currentTime - previousTime) / 1000000.0;
     if(dt <= 0) dt = 0.000001;
+    if(dt > 0.05) dt = 0.05;   // cap at 50 ms
     previousTime = currentTime;
 
     // https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller (pseudocode)
@@ -121,10 +122,18 @@ void PID(){
     if(integral > INTEGRAL_MAX) integral = INTEGRAL_MAX;
     if(integral < INTEGRAL_MIN) integral = INTEGRAL_MIN;
 
-    double derivative = (error - previousError) / dt;  // calculate derivative
-    previousError = error;
+    static int previousSensor = 0;
 
-    double output = Kp * error + Ki * integral + Kd * derivative;
+    double rawDerivative = -(sensorPos - previousSensor) / dt;
+    previousSensor = sensorPos;
+
+    static double filteredDerivative = 0;
+    double alpha = 0.1;   // tune 0.05–0.3
+
+    filteredDerivative = filteredDerivative + alpha*(rawDerivative - filteredDerivative);
+
+
+    double output = Kp * error + Ki * integral + Kd * filteredDerivative;
 
     int servoOutput = (int)((double)(SERVO_MID) + output);
 
