@@ -1,9 +1,9 @@
 #define MOTOR_PIN 9
 #define SENSOR_PIN A0
 
-#define SERVO_MIN 70
-#define SERVO_MID 90
-#define SERVO_MAX 130
+#define SERVO_MIN 1400
+#define SERVO_MID 1500
+#define SERVO_MAX 1600
 
 #define INTEGRAL_MIN -100000
 #define INTEGRAL_MAX 100000
@@ -44,19 +44,19 @@ void setup() {
 
     #ifdef TEST_SERVO
     Serial.println("servo test min");
-    servo.write(SERVO_MIN);
+    servo.writeMicroseconds(SERVO_MIN);
     delay(5000);
     Serial.println("servo test mid");
-    servo.write(SERVO_MID);
+    servo.writeMicroseconds(SERVO_MID);
     delay(5000);
     Serial.println("servo test max");
-    servo.write(SERVO_MAX);
+    servo.writeMicroseconds(SERVO_MAX);
     delay(5000);
     #endif
 
     Serial.println("center");
 
-    servo.write(SERVO_MID);
+    servo.writeMicroseconds(SERVO_MID);
     delay(3000);
 
     Serial.println("setup");
@@ -142,10 +142,10 @@ void PID(){
     if(servoOutput < SERVO_MIN) servoOutput = SERVO_MIN;
     if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
 
-    if(servoOutput < lastServoOutput-3) servoOutput = lastServoOutput-3;
-    if(servoOutput > lastServoOutput+3) servoOutput = lastServoOutput+3;
+    if(servoOutput < lastServoOutput-15) servoOutput = lastServoOutput-15;
+    if(servoOutput > lastServoOutput+15) servoOutput = lastServoOutput+15;
 
-    servo.write(servoOutput);
+    servo.writeMicroseconds(servoOutput);
     lastServoOutput = servoOutput;
 
     if(millis() > lastPrint){
