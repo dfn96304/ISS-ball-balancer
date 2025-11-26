@@ -1,9 +1,9 @@
 #define MOTOR_PIN 9
 #define SENSOR_PIN A0
 
-#define SERVO_MIN 30
+#define SERVO_MIN 70
 #define SERVO_MID 90
-#define SERVO_MAX 150
+#define SERVO_MAX 130
 
 #define INTEGRAL_MIN -100000
 #define INTEGRAL_MAX 100000
@@ -27,9 +27,9 @@ Servo servo;
 
 int targetPos = 300;
 
-double Kp = 0.15;
-double Ki = 0.0;
-double Kd = 0.001;
+double Kp = 0.17;
+double Ki = 0.00001;
+double Kd = 0.01;
 
 uint32_t previousTime = 0;
 int previousError = 0;
@@ -80,33 +80,33 @@ void process_serial(){
     if(Serial.available() > 0){
         // https://docs.arduino.cc/language-reference/en/functions/communication/serial/parseInt/
         int readInt = Serial.parseInt();
-        if(readInt >= POS_MIN && readInt <= POS_MAX){
-            targetPos = readInt;
+        int targetPos = readInt;
+        if(targetPos >= POS_MIN && targetPos <= POS_MAX){
             Serial.print("Target set: ");
             Serial.println(readInt);
         }else{
             Serial.println("ERROR");
         }
+
+        while(Serial.available() > 0) Serial.read();
     }
 }
 
-/*int readSensor(){
+int readSensor(){
     long sum = 0;
     for(int i = 0; i < 5; i++){
         sum += analogRead(SENSOR_PIN);
     }
     return (int)(sum / 5);
-}*/
+}
 
 long lastPrint = 0;
 
-void PID(){
-    int sensorPos = analogRead(A0);
+static int previousSensor = 0;
 
-    if(millis() > lastPrint){
-        Serial.println(sensorPos);
-        lastPrint = millis()+200;
-    }
+void PID(){
+    //int sensorPos = analogRead(A0);
+    int sensorPos = readSensor();
 
     int error = targetPos - sensorPos; // calculate error/proportional
 
@@ -122,10 +122,11 @@ void PID(){
     if(integral > INTEGRAL_MAX) integral = INTEGRAL_MAX;
     if(integral < INTEGRAL_MIN) integral = INTEGRAL_MIN;
 
-    static int previousSensor = 0;
+    //double rawDerivative = -(sensorPos - previousSensor) / dt;
+    //previousSensor = sensorPos;
 
-    double rawDerivative = -(sensorPos - previousSensor) / dt;
-    previousSensor = sensorPos;
+    double rawDerivative = (error - previousError) / dt;
+    previousError = error;
 
     static double filteredDerivative = 0;
     double alpha = 0.1;   // tune 0.05–0.3
@@ -141,4 +142,11 @@ void PID(){
     if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
 
     servo.write(servoOutput);
+
+    if(millis() > lastPrint){
+        Serial.print(sensorPos);
+        Serial.print(" ");
+        Serial.println(servoOutput);
+        lastPrint = millis()+200;
+    }
 }
