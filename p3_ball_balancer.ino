@@ -1,9 +1,9 @@
 #define MOTOR_PIN 9
 #define SENSOR_PIN A0
 
-#define SERVO_MIN 1200
-#define SERVO_MID 1500
-#define SERVO_MAX 1800
+#define SERVO_MIN 30
+#define SERVO_MID 90
+#define SERVO_MAX 150
 
 #define INTEGRAL_MIN -100000
 #define INTEGRAL_MAX 100000
@@ -25,7 +25,7 @@ void pid_init();
 
 Servo servo;
 
-int targetPos = 500;
+int targetPos = 300;
 
 double Kp = 0.1;
 double Ki = 0.0;
@@ -40,15 +40,24 @@ void setup() {
 
     servo.attach(MOTOR_PIN);
 
-    #define TEST_SERVO
+    //#define TEST_SERVO
 
     #ifdef TEST_SERVO
-    servo.writeMicroseconds(SERVO_MID);
-    delay(3000);
-    servo.writeMicroseconds(SERVO_MIN);
-    delay(3000);
-    servo.writeMicroseconds(SERVO_MAX);
+    Serial.println("servo test min");
+    servo.write(SERVO_MIN);
+    delay(5000);
+    Serial.println("servo test mid");
+    servo.write(SERVO_MID);
+    delay(5000);
+    Serial.println("servo test max");
+    servo.write(SERVO_MAX);
+    delay(5000);
     #endif
+
+    Serial.println("center");
+
+    servo.write(SERVO_MID);
+    delay(5000);
 
     Serial.println("setup");
 
@@ -81,8 +90,23 @@ void process_serial(){
     }
 }
 
+/*int readSensor(){
+    long sum = 0;
+    for(int i = 0; i < 5; i++){
+        sum += analogRead(SENSOR_PIN);
+    }
+    return (int)(sum / 5);
+}*/
+
+long lastPrint = 0;
+
 void PID(){
-    int sensorPos = analogRead(SENSOR_PIN);
+    int sensorPos = analogRead(A0);
+
+    if(millis() > lastPrint){
+        Serial.println(sensorPos);
+        lastPrint = millis()+200;
+    }
 
     int error = targetPos - sensorPos; // calculate error/proportional
 
@@ -107,5 +131,5 @@ void PID(){
     if(servoOutput < SERVO_MIN) servoOutput = SERVO_MIN;
     if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
 
-    servo.writeMicroseconds(servoOutput);
+    servo.write(servoOutput);
 }
