@@ -102,7 +102,9 @@ int readSensor(){
 
 long lastPrint = 0;
 
-static int previousSensor = 0;
+//int previousSensor = 0;
+
+int lastServoOutput = SERVO_MID;
 
 void PID(){
     //int sensorPos = analogRead(A0);
@@ -128,11 +130,10 @@ void PID(){
     double rawDerivative = (error - previousError) / dt;
     previousError = error;
 
-    static double filteredDerivative = 0;
+    double filteredDerivative = 0;
     double alpha = 0.1;   // tune 0.05–0.3
 
     filteredDerivative = filteredDerivative + alpha*(rawDerivative - filteredDerivative);
-
 
     double output = Kp * error + Ki * integral + Kd * filteredDerivative;
 
@@ -141,7 +142,11 @@ void PID(){
     if(servoOutput < SERVO_MIN) servoOutput = SERVO_MIN;
     if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
 
+    if(servoOutput < lastServoOutput-3) servoOutput = lastServoOutput-3;
+    if(servoOutput > lastServoOutput+3) servoOutput = lastServoOutput+3;
+
     servo.write(servoOutput);
+    lastServoOutput = servoOutput;
 
     if(millis() > lastPrint){
         Serial.print(sensorPos);
