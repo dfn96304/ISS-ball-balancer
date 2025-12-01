@@ -35,6 +35,10 @@ uint32_t previousTime = 0;
 int previousError = 0;
 double integral = 0.0;
 
+// every 10 ms = 10000 microseconds
+double dt = 0.01;
+#define PID_INTERVAL_US 10000
+
 void setup() {
     Serial.begin(9600);
 
@@ -65,7 +69,7 @@ void setup() {
 }
 
 void pid_init() {
-    previousTime = micros();
+    previousTime = micros()+PID_INTERVAL_US;
 }
 
 void loop() {
@@ -73,7 +77,10 @@ void loop() {
     process_serial();
 
     // 2. At regular intervals, update PID
-    PID();
+    if(micros() > previousTime){
+        previousTime = micros()+PID_INTERVAL_US;
+        PID();
+    }
 }
 
 void process_serial(){
@@ -94,30 +101,20 @@ void process_serial(){
 
 int readSensor(){
     long sum = 0;
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < 10; i++){
         sum += analogRead(SENSOR_PIN);
     }
-    return (int)(sum / 5);
+    return (int)(sum / 10);
 }
 
 long lastPrint = 0;
 
-//int previousSensor = 0;
-
 int lastServoOutput = SERVO_MID;
 
 void PID(){
-    //int sensorPos = analogRead(A0);
     int sensorPos = readSensor();
 
     int error = targetPos - sensorPos; // calculate error/proportional
-
-    // calculate dt
-    uint32_t currentTime = micros();  // https://docs.arduino.cc/language-reference/en/functions/time/micros/
-    double dt = (double)(currentTime - previousTime) / 1000000.0;
-    if(dt <= 0) dt = 0.000001;
-    if(dt > 0.05) dt = 0.05;   // cap at 50 ms
-    previousTime = currentTime;
 
     // https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller (pseudocode)
     integral = integral + error * dt;  // calculate integral
