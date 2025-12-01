@@ -39,6 +39,8 @@ double integral = 0.0;
 double dt = 0.01;
 #define PID_INTERVAL_US 10000
 
+#define MAX_SERVO_MOVE 15
+
 void setup() {
     Serial.begin(9600);
 
@@ -139,8 +141,8 @@ void PID(){
     if(servoOutput < SERVO_MIN) servoOutput = SERVO_MIN;
     if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
 
-    if(servoOutput < lastServoOutput-15) servoOutput = lastServoOutput-15;
-    if(servoOutput > lastServoOutput+15) servoOutput = lastServoOutput+15;
+    if(servoOutput < lastServoOutput-MAX_SERVO_MOVE) servoOutput = lastServoOutput-MAX_SERVO_MOVE;
+    if(servoOutput > lastServoOutput+MAX_SERVO_MOVE) servoOutput = lastServoOutput+MAX_SERVO_MOVE;
 
     servo.writeMicroseconds(servoOutput);
     lastServoOutput = servoOutput;
