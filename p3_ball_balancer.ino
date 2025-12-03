@@ -2,7 +2,7 @@
 #define SENSOR_PIN A0
 
 #define SERVO_MIN 0
-#define SERVO_MID 85
+#define SERVO_MID 100
 #define SERVO_MAX 180
 
 #define INTEGRAL_MIN -100000
@@ -28,16 +28,16 @@ Servo servo;
 int targetPos = 0;
 
 double Kp = 0.6;
-double Ki = 0.0;
-double Kd = 0.2;
+double Ki = 0.00001;
+double Kd = 0.45;
 
 uint32_t previousTime = 0;
 int previousError = 0;
 double integral = 0.0;
 
-// every 10 ms = 10000 microseconds
-double dt = 0.02;
-#define PID_INTERVAL_US 20000
+// every 100 ms = 100000 microseconds
+double dt = 0.1;
+#define PID_INTERVAL_US 100
 
 void setup() {
     Serial.begin(9600);
@@ -61,7 +61,7 @@ void setup() {
     Serial.println("center");
 
     servo.write(SERVO_MID);
-    delay(3000);
+    delay(1000);
 
     Serial.println("setup");
 
@@ -69,14 +69,14 @@ void setup() {
 }
 
 void pid_init() {
-    previousTime = micros()+PID_INTERVAL_US;
+    previousTime = millis()+PID_INTERVAL_US;
 }
 
 void loop() {
     // 1. Process serial input, alter balancing position if necessary
     process_serial();
 
-    int time = micros();
+    int time = millis();
 
     // 2. At regular intervals, update PID
     if(time > previousTime+PID_INTERVAL_US){
@@ -103,21 +103,34 @@ void process_serial(){
 
 double readSensor(){
     long sum = 0;
-    for(int i = 0; i < 20; i++){
+    for(int i = 0; i < 200; i++){
         sum += analogRead(SENSOR_PIN);
     }
-    double average = (double)sum / 20.0;
+    double average = (double)sum / 200.0;
     return 18600 * pow(average, -1.162602) - 36.0;
 }
 
 long lastPrint = 0;
-
+double previousSensor = 0.0;
 int lastServoOutput = SERVO_MID;
+
+int slowc = 0;
 
 void PID(){
     double sensorPos = readSensor();
 
     double error = targetPos - sensorPos; // calculate error/proportional
+
+    double velocity = abs(sensorPos - previousSensor);
+    previousSensor = sensorPos;
+
+    if(velocity < 0.25){
+        if(slowc < 100) ++slowc;
+    }else{
+        if(slowc > 0) slowc /= 2;
+    }
+
+    Kp = 0.6 + slowc*0.06;
 
     // https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller (pseudocode)
     integral = integral + error * dt;  // calculate integral
@@ -129,11 +142,6 @@ void PID(){
 
     double rawDerivative = (error - previousError) / dt;
     previousError = error;
-
-    /*double filteredDerivative = 0;
-    double alpha = 0.1;   // tune 0.05–0.3
-
-    filteredDerivative = filteredDerivative + alpha*(rawDerivative - filteredDerivative);*/
 
     double output = Kp * error + Ki * integral + Kd * rawDerivative;
 
@@ -152,6 +160,8 @@ void PID(){
         Serial.print(sensorPos);
         Serial.print(" ");
         Serial.print(targetPos);
+        Serial.print(" ");
+        Serial.print(Kp);
         Serial.print(" ");
         Serial.println(servoOutput);
         lastPrint = millis()+200;
