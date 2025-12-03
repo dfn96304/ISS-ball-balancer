@@ -1,15 +1,15 @@
 #define MOTOR_PIN 9
 #define SENSOR_PIN A0
 
-#define SERVO_MIN 1400
-#define SERVO_MID 1500
-#define SERVO_MAX 1600
+#define SERVO_MIN 0
+#define SERVO_MID 90
+#define SERVO_MAX 180
 
 #define INTEGRAL_MIN -100000
 #define INTEGRAL_MAX 100000
 
-#define POS_MIN 0
-#define POS_MAX 1023
+#define POS_MIN -20
+#define POS_MAX 20
 
 // https://docs.arduino.cc/learn/electronics/servo-motors/
 #include <Servo.h>
@@ -28,7 +28,7 @@ Servo servo;
 int targetPos = 300;
 
 double Kp = 0.17;
-double Ki = 0.00001;
+double Ki = 0.001;
 double Kd = 0.01;
 
 uint32_t previousTime = 0;
@@ -50,19 +50,19 @@ void setup() {
 
     #ifdef TEST_SERVO
     Serial.println("servo test min");
-    servo.writeMicroseconds(SERVO_MIN);
-    delay(5000);
+    servo.write(SERVO_MIN);
+    delay(3000);
     Serial.println("servo test mid");
-    servo.writeMicroseconds(SERVO_MID);
-    delay(5000);
+    servo.write(SERVO_MID);
+    delay(3000);
     Serial.println("servo test max");
-    servo.writeMicroseconds(SERVO_MAX);
-    delay(5000);
+    servo.write(SERVO_MAX);
+    delay(3000);
     #endif
 
     Serial.println("center");
 
-    servo.writeMicroseconds(SERVO_MID);
+    servo.write(SERVO_MID);
     delay(3000);
 
     Serial.println("setup");
@@ -78,9 +78,11 @@ void loop() {
     // 1. Process serial input, alter balancing position if necessary
     process_serial();
 
+    int time = micros();
+
     // 2. At regular intervals, update PID
-    if(micros() > previousTime){
-        previousTime = micros()+PID_INTERVAL_US;
+    if(time > previousTime+PID_INTERVAL_US){
+        previousTime = time;
         PID();
     }
 }
@@ -89,10 +91,10 @@ void process_serial(){
     if(Serial.available() > 0){
         // https://docs.arduino.cc/language-reference/en/functions/communication/serial/parseInt/
         int readInt = Serial.parseInt();
-        int targetPos = readInt;
+        targetPos = readInt;
         if(targetPos >= POS_MIN && targetPos <= POS_MAX){
             Serial.print("Target set: ");
-            Serial.println(readInt);
+            Serial.println(targetPos);
         }else{
             Serial.println("ERROR");
         }
@@ -103,10 +105,11 @@ void process_serial(){
 
 int readSensor(){
     long sum = 0;
-    for(int i = 0; i < 10; i++){
+    for(int i = 0; i < 200; i++){
         sum += analogRead(SENSOR_PIN);
     }
-    return (int)(sum / 10);
+    double average = (double)sum / 200.0;
+    return (int)(18600 * pow(average, -1.162602) - 36.0);
 }
 
 long lastPrint = 0;
@@ -129,26 +132,28 @@ void PID(){
     double rawDerivative = (error - previousError) / dt;
     previousError = error;
 
-    double filteredDerivative = 0;
+    /*double filteredDerivative = 0;
     double alpha = 0.1;   // tune 0.05–0.3
 
-    filteredDerivative = filteredDerivative + alpha*(rawDerivative - filteredDerivative);
+    filteredDerivative = filteredDerivative + alpha*(rawDerivative - filteredDerivative);*/
 
-    double output = Kp * error + Ki * integral + Kd * filteredDerivative;
+    double output = Kp * error + Ki * integral + Kd * rawDerivative;
 
     int servoOutput = (int)((double)(SERVO_MID) + output);
 
     if(servoOutput < SERVO_MIN) servoOutput = SERVO_MIN;
     if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
 
-    if(servoOutput < lastServoOutput-MAX_SERVO_MOVE) servoOutput = lastServoOutput-MAX_SERVO_MOVE;
-    if(servoOutput > lastServoOutput+MAX_SERVO_MOVE) servoOutput = lastServoOutput+MAX_SERVO_MOVE;
+    //if(servoOutput < lastServoOutput-MAX_SERVO_MOVE) servoOutput = lastServoOutput-MAX_SERVO_MOVE;
+    //if(servoOutput > lastServoOutput+MAX_SERVO_MOVE) servoOutput = lastServoOutput+MAX_SERVO_MOVE;
 
-    servo.writeMicroseconds(servoOutput);
+    servo.write(servoOutput);
     lastServoOutput = servoOutput;
 
     if(millis() > lastPrint){
         Serial.print(sensorPos);
+        Serial.print(" ");
+        Serial.print(targetPos);
         Serial.print(" ");
         Serial.println(servoOutput);
         lastPrint = millis()+200;
