@@ -2,7 +2,7 @@
 #define SENSOR_PIN A0
 
 #define SERVO_MIN 0
-#define SERVO_MID 90
+#define SERVO_MID 85
 #define SERVO_MAX 180
 
 #define INTEGRAL_MIN -100000
@@ -25,21 +25,19 @@ void pid_init();
 
 Servo servo;
 
-int targetPos = 300;
+int targetPos = 0;
 
-double Kp = 0.17;
-double Ki = 0.001;
-double Kd = 0.01;
+double Kp = 0.6;
+double Ki = 0.0;
+double Kd = 0.2;
 
 uint32_t previousTime = 0;
 int previousError = 0;
 double integral = 0.0;
 
 // every 10 ms = 10000 microseconds
-double dt = 0.01;
-#define PID_INTERVAL_US 10000
-
-#define MAX_SERVO_MOVE 15
+double dt = 0.02;
+#define PID_INTERVAL_US 20000
 
 void setup() {
     Serial.begin(9600);
@@ -103,13 +101,13 @@ void process_serial(){
     }
 }
 
-int readSensor(){
+double readSensor(){
     long sum = 0;
-    for(int i = 0; i < 200; i++){
+    for(int i = 0; i < 20; i++){
         sum += analogRead(SENSOR_PIN);
     }
-    double average = (double)sum / 200.0;
-    return (int)(18600 * pow(average, -1.162602) - 36.0);
+    double average = (double)sum / 20.0;
+    return 18600 * pow(average, -1.162602) - 36.0;
 }
 
 long lastPrint = 0;
@@ -117,9 +115,9 @@ long lastPrint = 0;
 int lastServoOutput = SERVO_MID;
 
 void PID(){
-    int sensorPos = readSensor();
+    double sensorPos = readSensor();
 
-    int error = targetPos - sensorPos; // calculate error/proportional
+    double error = targetPos - sensorPos; // calculate error/proportional
 
     // https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller (pseudocode)
     integral = integral + error * dt;  // calculate integral
@@ -139,7 +137,7 @@ void PID(){
 
     double output = Kp * error + Ki * integral + Kd * rawDerivative;
 
-    int servoOutput = (int)((double)(SERVO_MID) + output);
+    int servoOutput = (int)((double)(SERVO_MID) - output);
 
     if(servoOutput < SERVO_MIN) servoOutput = SERVO_MIN;
     if(servoOutput > SERVO_MAX) servoOutput = SERVO_MAX;
