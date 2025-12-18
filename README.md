@@ -30,7 +30,7 @@ Additionally, the values inside `readSensor()`: `18600 * pow(average, -1.162602)
 
 ## Usage
 
-1. Once the system is up and running, the target position of the ball can be set through the Serial Monitor. For example, sending the value `10` would attempt to balance the ball at position 10.
+1. Once the system is up and running, the target position of the ball can be set through the Serial Monitor. For example, sending the value `10` would attempt to balance the ball at position 10 cm away from 0 (center).
 2. The servo motor will adjust accordingly based on the calculated PID output to maintain the target position.
 
 ### Serial commands
